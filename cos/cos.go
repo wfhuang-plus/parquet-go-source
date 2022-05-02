@@ -35,11 +35,6 @@ type CosFile struct {
 	key string
 }
 
-const (
-	rangeHeader       = "bytes=%d-%d"
-	rangeHeaderSuffix = "bytes=%d"
-)
-
 var (
 	errWhence        = errors.New("Seek: invalid whence")
 	errInvalidOffset = errors.New("Seek: invalid offset")
@@ -165,11 +160,6 @@ func (this *CosFile) Read(p []byte) (int, error) {
 		}
 	}
 
-	//ts := time.Since(sts)
-	//ts1 := time.Since(lts)
-	//lts = time.Now()
-	//fmt.Printf("readnun: %d, ret num: %d, start: %d, end: %d, cost:%v, cost1:%v\n", ln, cnt, start, end, ts, ts1)
-
 	this.offset += int64(cnt)
 
 	return cnt, nil
@@ -238,6 +228,8 @@ func (this *CosFile) Close() error {
 
 	if this.writeDone != nil {
 		<-this.writeDone
+		close(this.writeDone)
+		this.writeDone = nil
 	}
 
 	return this.err
@@ -259,6 +251,7 @@ func (this *CosFile) Create(key string) (source.ParquetFile, error) {
 	go func() {
 		_, err := cosFile.client.Object.Put(cosFile.ctx, key, pipeReader, nil)
 		if err != nil {
+			fmt.Println(err)
 			cosFile.err = err
 			pipeReader.CloseWithError(err)
 		}
